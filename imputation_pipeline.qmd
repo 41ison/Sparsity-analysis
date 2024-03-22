@@ -57,7 +57,7 @@ remove_missing <- function(x, threshold) {
 ```
 
 # Iportant assumptions about the abundance matrix: 
-1. you have the abundance of proteins in the rows and the samples in the columns.
+1. you have the proteins in the rows and the samples in the columns.
 2. naturally, the matrix has some missing values.
 
 ```{r}
