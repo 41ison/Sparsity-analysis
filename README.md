@@ -24,6 +24,6 @@ If the p-value is less than 0.05, the missing values are not missing at random.
 You need the {naniar} package to run this function.
 
 # We will follow the steps below to impute the missing values using random forest regression.
-We are assimung reasonable that the missing values are missing at random (MAR).
-If you have a different assumption, you can change the method of imputation.
-The {mice} package is used to impute the missing values.
+We are assuming reasonable that the missing values are missing at random (MAR).
+If you have a different assumption, you can change the method of imputation accordingly.
+Here the {mice} package is used to impute the missing values.
