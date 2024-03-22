@@ -11,7 +11,7 @@ Some quick tips for sparsity analysis, including reduction in a matrix of abunda
 In order to facilitate the analysis, we can create some functions to be used in the analysis.
 Your matrix must have the genes or proteins in the rows and the samples in the columns. After running the `protein_missingness()` function, the column `prot_miss` will be created in the matrix. This column will store the percentage of missing values for each protein. The `remove_missing()` function will remove the proteins with more than a specific percentage of missing values.
 
-# Iportant assumptions about the abundance matrix: 
+# Important assumptions about the abundance matrix: 
 1. you have the proteins in the rows and the samples in the columns.
 2. naturally, the matrix has some missing values.
 
