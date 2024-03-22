@@ -1,0 +1,160 @@
+---
+title: "Sparsity analysis and imputation of missing values in proteomics data"
+author: "Alison Felipe Alencar Chaves"
+execute:
+  echo: true
+  warning: false
+  message: false
+format: html
+code-fold: true
+---
+
+# How does it work?
+1. Load the matrix with the protein abundance
+2. Apply the protein_missingness() function to the matrix
+3. Remove the proteins with more than, let's say, 20% of missing values
+4. Save the matrix with the missingness column
+5. Plot a histogram of the protein missing values
+
+# loading libraries required for the analysis
+
+```{r}
+library(tidyverse)
+library(limma)
+library(RColorBrewer)
+library(naniar)
+library(mice)
+
+# set a theme of your preference for the plots
+theme_set(theme_bw())
+
+# always check the versions of the packages you are using.
+# This is important to ensure reproducibility.
+sessionInfo()
+```
+
+# load some functions to be used in the analysis
+In order to facilitate the analysis, we can create some functions to be used in the analysis.
+Your matrix must have the genes or proteins in the rows and the samples in the columns. After running the `protein_missingness()` function, the column `prot_miss` will be created in the matrix. This column will store the percentage of missing values for each protein. The `remove_missing()` function will remove the proteins with more than a specific percentage of missing values.
+
+```{r}
+# This function will create a column to store the percentage of missing values for each protein
+protein_missingness <- function(x) {
+    missingness_prop <- function(x) {
+        sum(is.na(x)) / length(x) # calculate the percentage of missing values
+    }
+    x <- as.data.frame(x) %>% # convert the matrix to a dataframe
+    dplyr::mutate(prot_miss = apply(x, 1, missingness_prop)) # apply the missingness_prop function to each row
+}
+
+# This function works to remove the proteins with more than a specific percentage of missing values
+remove_missing <- function(x, threshold) {
+    x <- as.data.frame(x) %>% # convert the matrix to a dataframe (just to make sure you are working with a dataframe)
+    dplyr::filter(prot_miss <= threshold) %>% # filter the proteins with less than or equal to the threshold
+    dplyr::select(-prot_miss) %>% # remove the prot_miss column
+    as.matrix() # convert the dataframe back to a matrix
+}
+```
+
+# Iportant assumptions about the abundance matrix: 
+1. you have the abundance of proteins in the rows and the samples in the columns.
+2. naturally, the matrix has some missing values.
+
+```{r}
+df_abundance <- read_tsv("matrix_abundance.tsv") # load the matrix with the protein abundance
+```
+
+# Steps to follow to reduce sparsity on the matrix
+You can apply this method regardless the orgin of the matrix with abundance of proteins (DIANN, FragPipe, MaxQuant, etc).
+
+```{r}
+# step 1: add the missingness column to the matrix
+df_abundance <- protein_missingness(matrix_abundance) # the function protein_missingness() has only one argument: the matrix of protein abundance
+
+names(matrix_df) # check that you have a column called prot_miss
+dim(df_abundance) # check the dimensions of the dataframe
+
+# plot a histogram of the protein missing values
+df_abundance %>%
+    ggplot(aes(x = prot_miss*100)) +
+    geom_histogram(binwidth = 5, fill = "#92C5DE", color = "black") +
+    theme(
+        text = element_text(size = 30)
+    ) +
+    labs(
+        x = "Percentage of missing values",
+        y = "Number of proteins"
+    )
+
+# Now that you have a dataframe with the missingness column, you can remove the proteins with more than 20% of missing values.
+# You can adjust the threshold according to your needs
+mat_sparsity_reduced <- remove_missing(matrix_missing, 0.2) # the function remove_missing() has two arguments: the matrix and the threshold
+
+dim(mat_sparcity_reduced)   # check the dimensions of the matrix for comparison before and after removing the proteins with high missingness pattern
+```
+
+# Check whether the missing values are missing at random (MAR)
+This function computes the Little's MCAR test to check whether the missing values are missing at random (MAR).
+If the p-value is less than 0.05, the missing values are not missing at random.
+You need the {naniar} package to run this function.
+
+```{r}
+mat_sparsity_reduced %>%
+    as.data.frame() %>%
+    naniar::mcar_test() # check whether the missing values are missing at random (MAR)
+```
+
+# plot the heatmap of the missing values
+```{r}
+mat_sparsity_reduced %>%
+    as.data.frame() %>%
+    naniar::gg_miss_var() # plot the heatmap of the missing values
+```
+
+# We will follow the steps below to impute the missing values using random forest regression.
+We are assimung reasonable that the missing values are missing at random (MAR).
+If you have a different assumption, you can change the method of imputation.
+The {mice} package is used to impute the missing values.
+
+```{r}
+# step 2: impute the missing values using random forest regression
+imputed_data <- mice(log2(mat_sparcity_reduced + 0.5),      # we log2 transform the data to make it more normally distributed and add 0.5 to avoid Inf values
+                    meth = "rf", m = 3, maxit = 50, seed = 500)
+
+# maybe you want to save the imputed data to save time
+write_rds(imputed_data, "imputed_data.rds")
+imputed_data <- read_rds("imputed_data.rds")
+
+# step 3: check the imputed data
+summary(imputed_data)
+
+# Now you can complete your matrix with the imputed data. If you generated 3 imputed datasets, you can choose one those 3.
+completedData <- complete(imputed_data, 1) %>%
+    normalizeBetweenArrays(method = "scale")    # normalize the data using the MAD method (median absolute deviation) from {limma} package
+
+# plot and save the density and strip plots of the imputed data
+png("density_imputed_data.png", width = 15, height = 10, units = "in", res = 1200)
+densityplot(imputed_data)
+dev.off()
+
+png("stripplot_imputed_data.png", width = 15, height = 10, units = "in", res = 1200)
+stripplot(imputed_data, pch = 20, cex = 1.2, alpha = 0.7)
+dev.off()
+
+# step 4: check the correlation between the imputed data
+correlation_imputed <- cor(completedData, method = "pearson")
+
+# plot and save the correlation matrix
+png("correlation_imputed.png", width = 20, height = 20, units = "in", res = 1200)
+corrplot(correlation_imputed,
+    method = "color",
+    order = "hclust",
+    tl.col = "black",
+    hclust.method = "complete",
+    diag = FALSE,
+    tl.cex = 2,
+    cl.cex = 2,
+    type = "lower"
+)
+dev.off()
+```
