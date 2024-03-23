@@ -34,8 +34,11 @@ sessionInfo()
 ```
 
 # load some functions to be used in the analysis
-In order to facilitate the analysis, we can create some functions to be used in the analysis.
-Your matrix must have the genes or proteins in the rows and the samples in the columns. After running the `protein_missingness()` function, the column `prot_miss` will be created in the matrix. This column will store the percentage of missing values for each protein. The `remove_missing()` function will remove the proteins with more than a specific percentage of missing values.
+In order to facilitate the analysis, we can create some functions.
+Your matrix must have the genes or proteins in the rows and the samples in the columns.
+After running the `protein_missingness()` function, the column `prot_miss` will be created in the matrix.
+This column will store the percentage of missing values for each protein.
+The `remove_missing()` function will remove the proteins with more than a specific percentage of missing values.
 
 ```{r}
 # This function will create a column to store the percentage of missing values for each protein
@@ -56,7 +59,7 @@ remove_missing <- function(x, threshold) {
 }
 ```
 
-# Important assumptions about the abundance matrix: 
+# Important assumptions about the matrix of abundance: 
 1. you have the proteins in the rows and the samples in the columns.
 2. naturally, the matrix has some missing values.
 
@@ -86,7 +89,7 @@ df_abundance %>%
         y = "Number of proteins"
     )
 
-# Now that you have a dataframe with the missingness column, you can remove the proteins with more than 20% of missing values.
+# Now that you have a dataframe with the missingness column, you can remove the proteins with more than, in our example, 20% of missing values.
 # You can adjust the threshold according to your needs
 mat_sparsity_reduced <- remove_missing(matrix_missing, 0.2) # the function remove_missing() has two arguments: the matrix and the threshold
 
@@ -108,12 +111,16 @@ mat_sparsity_reduced %>%
 ```{r}
 mat_sparsity_reduced %>%
     as.data.frame() %>%
-    naniar::gg_miss_var() # plot the heatmap of the missing values
+    vis_miss() +      # plot the heatmap of the missing values
+    coord_flip() +
+    theme(
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
+    )
 ```
 
 # We will follow the steps below to impute the missing values using random forest regression.
-We are assimung reasonable that the missing values are missing at random (MAR).
-If you have a different assumption, you can change the method of imputation.
+We are assuming reasonably that the missing values are missing at random (MAR).
+If you have a different assumption, you can change the method of imputation or the decission about imputate or not.
 The {mice} package is used to impute the missing values.
 
 ```{r}
@@ -128,7 +135,8 @@ imputed_data <- read_rds("imputed_data.rds")
 # step 3: check the imputed data
 summary(imputed_data)
 
-# Now you can complete your matrix with the imputed data. If you generated 3 imputed datasets, you can choose one those 3.
+# Now you can complete your matrix with the imputed data.
+# If you generated 3 imputed datasets, you can choose one of those 3.
 completedData <- complete(imputed_data, 1) %>%
     normalizeBetweenArrays(method = "scale")    # normalize the data using the MAD method (median absolute deviation) from {limma} package
 
