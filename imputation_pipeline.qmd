@@ -125,7 +125,7 @@ The {mice} package is used to impute the missing values.
 
 ```{r}
 # step 2: impute the missing values using random forest regression
-imputed_data <- mice(log2(mat_sparcity_reduced + 0.5),      # we log2 transform the data to make it more normally distributed and add 0.5 to avoid Inf values
+imputed_data <- mice(log2(mat_sparsity_reduced + 0.5),      # we log2 transform the data to make it more normally distributed and add 0.5 to avoid Inf values
                     meth = "rf", m = 3, maxit = 50, seed = 500)
 
 # maybe you want to save the imputed data to save time
