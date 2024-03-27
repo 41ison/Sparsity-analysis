@@ -14,16 +14,12 @@ Your matrix must have the genes or proteins in the rows and the samples in the c
 # Important assumptions about the abundance matrix: 
 1. you have the proteins in the rows and the samples in the columns.
 2. naturally, the matrix has some missing values.
-
-# Steps to follow to reduce sparsity on the matrix
 You can apply this method regardless the orgin of the matrix with abundance of proteins (DIANN, FragPipe, MaxQuant, etc).
 
 # Check whether the missing values are missing at random (MAR)
 This function computes the Little's MCAR test to check whether the missing values are missing at random (MAR).
 If the p-value is less than 0.05, the missing values are not missing at random.
 You need the {naniar} package to run this function.
-
-# We will follow the steps below to impute the missing values using random forest regression.
-We are assuming reasonable that the missing values are missing at random (MAR).
+We are assuming reasonably that the missing values are missing at random (MAR).
 If you have a different assumption, you can change the method of imputation accordingly.
 Here the {mice} package is used to impute the missing values.
