@@ -68,13 +68,13 @@ df_abundance <- read_tsv("matrix_abundance.tsv") # load the matrix with the prot
 ```
 
 # Steps to follow to reduce sparsity on the matrix
-You can apply this method regardless the orgin of the matrix with abundance of proteins (DIANN, FragPipe, MaxQuant, etc).
+You can apply this method regardless the origin of the matrix with abundance of proteins (DIANN, FragPipe, MaxQuant, etc).
 
 ```{r}
 # step 1: add the missingness column to the matrix
-df_abundance <- protein_missingness(matrix_abundance) # the function protein_missingness() has only one argument: the matrix of protein abundance
+df_abundance <- protein_missingness(df_abundance) # the function protein_missingness() has only one argument: the matrix of protein abundance
 
-names(matrix_df) # check that you have a column called prot_miss
+names(df_abundance) # check that you have a column called prot_miss
 dim(df_abundance) # check the dimensions of the dataframe
 
 # plot a histogram of the protein missing values
@@ -91,9 +91,9 @@ df_abundance %>%
 
 # Now that you have a dataframe with the missingness column, you can remove the proteins with more than, in our example, 20% of missing values.
 # You can adjust the threshold according to your needs
-mat_sparsity_reduced <- remove_missing(matrix_missing, 0.2) # the function remove_missing() has two arguments: the matrix and the threshold
+mat_sparsity_reduced <- remove_missing(df_abundance, 0.2) # the function remove_missing() has two arguments: the matrix and the threshold
 
-dim(mat_sparcity_reduced)   # check the dimensions of the matrix for comparison before and after removing the proteins with high missingness pattern
+dim(mat_sparsity_reduced)   # check the dimensions of the matrix for comparison before and after removing the proteins with high missingness pattern
 ```
 
 # Check whether the missing values are missing at random (MAR)
@@ -120,13 +120,13 @@ mat_sparsity_reduced %>%
 
 # We will follow the steps below to impute the missing values using random forest regression.
 We are assuming reasonably that the missing values are missing at random (MAR).
-If you have a different assumption, you can change the method of imputation or the decission about imputate or not.
+If you have a different assumption, you can change the method of imputation or the decision about imputate or not.
 The {mice} package is used to impute the missing values.
 
 ```{r}
 # step 2: impute the missing values using random forest regression
 imputed_data <- mice(log2(mat_sparsity_reduced + 0.5),      # we log2 transform the data to make it more normally distributed and add 0.5 to avoid Inf values
-                    meth = "rf", m = 3, maxit = 50, seed = 500)
+                    meth = "rf", m = 3, maxit = 100, seed = 500)
 
 # maybe you want to save the imputed data to save time
 write_rds(imputed_data, "imputed_data.rds")
